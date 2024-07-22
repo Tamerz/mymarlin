@@ -981,3 +981,498 @@
   #define LEVELING_NOZZLE_TEMP 120   // (°C) Only applies to E0 at this time
   #define LEVELING_BED_TEMP     50
 #endif
+
+#if ANY(MESH_BED_LEVELING, AUTO_BED_LEVELING_UBL, PROBE_MANUALLY)
+  // Set a height for the start of manual adjustment
+  #define MANUAL_PROBE_START_Z 0.2  // (mm) Comment out to use the last-measured height
+#endif
+
+#if ANY(MESH_BED_LEVELING, AUTO_BED_LEVELING_BILINEAR, AUTO_BED_LEVELING_UBL)
+  /**
+   * Gradually reduce leveling correction until a set height is reached,
+   * at which point movement will be level to the machine's XY plane.
+   * The height can be set with M420 Z<height>
+   */
+  #define ENABLE_LEVELING_FADE_HEIGHT
+  #if ENABLED(ENABLE_LEVELING_FADE_HEIGHT)
+    #define DEFAULT_LEVELING_FADE_HEIGHT 10.0 // (mm) Default fade height.
+  #endif
+
+  /**
+   * For Cartesian machines, instead of dividing moves on mesh boundaries,
+   * split up moves into short segments like a Delta. This follows the
+   * contours of the bed more closely than edge-to-edge straight moves.
+   */
+  #define SEGMENT_LEVELED_MOVES
+  #define LEVELED_SEGMENT_LENGTH 5.0 // (mm) Length of all segments (except the last one)
+
+  /**
+   * Enable the G26 Mesh Validation Pattern tool.
+   */
+  #define G26_MESH_VALIDATION
+  #if ENABLED(G26_MESH_VALIDATION)
+    #define MESH_TEST_NOZZLE_SIZE    0.4  // (mm) Diameter of primary nozzle.
+    #define MESH_TEST_LAYER_HEIGHT   0.2  // (mm) Default layer height for G26.
+    #define MESH_TEST_HOTEND_TEMP  205    // (°C) Default nozzle temperature for G26.
+    #define MESH_TEST_BED_TEMP      60    // (°C) Default bed temperature for G26.
+    #define G26_XY_FEEDRATE         20    // (mm/s) Feedrate for G26 XY moves.
+    #define G26_XY_FEEDRATE_TRAVEL 100    // (mm/s) Feedrate for G26 XY travel moves.
+    #define G26_RETRACT_MULTIPLIER   1.0  // G26 Q (retraction) used by default between mesh test elements.
+  #endif
+
+#endif
+
+#if EITHER(AUTO_BED_LEVELING_LINEAR, AUTO_BED_LEVELING_BILINEAR)
+
+  // Set the number of grid points per dimension.
+  #define GRID_MAX_POINTS_X 3
+  #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
+
+  // Probe along the Y axis, advancing X after each column
+  //#define PROBE_Y_FIRST
+
+  #if ENABLED(AUTO_BED_LEVELING_BILINEAR)
+
+    // Beyond the probed grid, continue the implied tilt?
+    // Default is to maintain the height of the nearest edge.
+    //#define EXTRAPOLATE_BEYOND_GRID
+
+    //
+    // Subdivision of the grid by Catmull-Rom method.
+    // Synthesizes intermediate points to produce a more detailed mesh.
+    //
+    //#define ABL_BILINEAR_SUBDIVISION
+    #if ENABLED(ABL_BILINEAR_SUBDIVISION)
+      // Number of subdivisions between probe points
+      #define BILINEAR_SUBDIVISIONS 3
+    #endif
+
+  #endif
+
+#elif ENABLED(AUTO_BED_LEVELING_UBL)
+
+  //===========================================================================
+  //========================= Unified Bed Leveling ============================
+  //===========================================================================
+
+  //#define MESH_EDIT_GFX_OVERLAY   // Display a graphics overlay while editing the mesh
+
+  #define MESH_INSET 1              // Set Mesh bounds as an inset region of the bed
+  #define GRID_MAX_POINTS_X 7      // Don't use more than 15 points per axis, implementation limited.
+  #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
+
+  //#define UBL_HILBERT_CURVE       // Use Hilbert distribution for less travel when probing multiple points
+
+  #define UBL_MESH_EDIT_MOVES_Z     // Sophisticated users prefer no movement of nozzle
+  #define UBL_SAVE_ACTIVE_ON_M500   // Save the currently active mesh in the current slot on M500
+
+  //#define UBL_Z_RAISE_WHEN_OFF_MESH 2.5 // When the nozzle is off the mesh, this value is used
+                                          // as the Z-Height correction value.
+
+  //#define UBL_MESH_WIZARD         // Run several commands in a row to get a complete mesh
+
+#elif ENABLED(MESH_BED_LEVELING)
+
+  //===========================================================================
+  //=================================== Mesh ==================================
+  //===========================================================================
+
+  #define MESH_INSET 10          // Set Mesh bounds as an inset region of the bed
+  #define GRID_MAX_POINTS_X 3    // Don't use more than 7 points per axis, implementation limited.
+  #define GRID_MAX_POINTS_Y GRID_MAX_POINTS_X
+
+  //#define MESH_G28_REST_ORIGIN // After homing all axes ('G28' or 'G28 XYZ') rest Z at Z_MIN_POS
+
+#endif // BED_LEVELING
+
+/**
+ * Add a bed leveling sub-menu for ABL or MBL.
+ * Include a guided procedure if manual probing is enabled.
+ */
+#define LCD_BED_LEVELING
+
+#if ENABLED(LCD_BED_LEVELING)
+  #define MESH_EDIT_Z_STEP  0.025 // (mm) Step size while manually probing Z axis.
+  #define LCD_PROBE_Z_RANGE 4     // (mm) Z Range centered on Z_MIN_POS for LCD Z adjustment
+  //#define MESH_EDIT_MENU        // Add a menu to edit mesh points
+#endif
+
+// Add a menu item to move between bed corners for manual bed adjustment
+#define LCD_BED_TRAMMING
+
+#if ENABLED(LCD_BED_TRAMMING)
+  #define BED_TRAMMING_INSET_LFRB { 30, 30, 30, 30 } // (mm) Left, Front, Right, Back insets
+  #define BED_TRAMMING_HEIGHT      0.0        // (mm) Z height of nozzle at tramming points
+  #define BED_TRAMMING_Z_HOP       4.0        // (mm) Z height of nozzle between tramming points
+  //#define BED_TRAMMING_INCLUDE_CENTER       // Move to the center after the last corner
+  #define BED_TRAMMING_USE_PROBE
+  #if ENABLED(BED_TRAMMING_USE_PROBE)
+    #define BED_TRAMMING_PROBE_TOLERANCE 0.1  // (mm)
+    #define BED_TRAMMING_VERIFY_RAISED        // After adjustment triggers the probe, re-probe to verify
+    //#define BED_TRAMMING_AUDIO_FEEDBACK
+  #endif
+
+  /**
+   * Corner Leveling Order
+   *
+   * Set 2 or 4 points. When 2 points are given, the 3rd is the center of the opposite edge.
+   *
+   *  LF  Left-Front    RF  Right-Front
+   *  LB  Left-Back     RB  Right-Back
+   *
+   * Examples:
+   *
+   *      Default        {LF,RB,LB,RF}         {LF,RF}           {LB,LF}
+   *  LB --------- RB   LB --------- RB    LB --------- RB   LB --------- RB
+   *  |  4       3  |   | 3         2 |    |     <3>     |   | 1           |
+   *  |             |   |             |    |             |   |          <3>|
+   *  |  1       2  |   | 1         4 |    | 1         2 |   | 2           |
+   *  LF --------- RF   LF --------- RF    LF --------- RF   LF --------- RF
+   */
+  #define BED_TRAMMING_LEVELING_ORDER { LF, RF, RB, LB }
+#endif
+
+/**
+ * Use "Z Safe Homing" to avoid homing with a Z probe outside the bed area.
+ *
+ * - Moves the Z probe (or nozzle) to a defined XY point before Z homing.
+ * - Allows Z homing only when XY positions are known and trusted.
+ * - If stepper drivers sleep, XY homing may be required again before Z homing.
+ */
+#define Z_SAFE_HOMING
+
+#if ENABLED(Z_SAFE_HOMING)
+  #define Z_SAFE_HOMING_X_POINT X_CENTER  // (mm) X point for Z homing
+  #define Z_SAFE_HOMING_Y_POINT Y_CENTER  // (mm) Y point for Z homing
+#endif
+
+// Homing speeds (linear=mm/min, rotational=°/min)
+#define HOMING_FEEDRATE_MM_M { (20*60), (20*60), (4*60) }
+
+// Validate that endstops are triggered on homing moves
+#define VALIDATE_HOMING_ENDSTOPS
+
+// @section calibrate
+
+/**
+ * Bed Skew Compensation
+ *
+ * This feature corrects for misalignment in the XYZ axes.
+ *
+ * Take the following steps to get the bed skew in the XY plane:
+ *  1. Print a test square (e.g., https://www.thingiverse.com/thing:2563185)
+ *  2. For XY_DIAG_AC measure the diagonal A to C
+ *  3. For XY_DIAG_BD measure the diagonal B to D
+ *  4. For XY_SIDE_AD measure the edge A to D
+ *
+ * Marlin automatically computes skew factors from these measurements.
+ * Skew factors may also be computed and set manually:
+ *
+ *  - Compute AB     : SQRT(2*AC*AC+2*BD*BD-4*AD*AD)/2
+ *  - XY_SKEW_FACTOR : TAN(PI/2-ACOS((AC*AC-AB*AB-AD*AD)/(2*AB*AD)))
+ *
+ * If desired, follow the same procedure for XZ and YZ.
+ * Use these diagrams for reference:
+ *
+ *    Y                     Z                     Z
+ *    ^     B-------C       ^     B-------C       ^     B-------C
+ *    |    /       /        |    /       /        |    /       /
+ *    |   /       /         |   /       /         |   /       /
+ *    |  A-------D          |  A-------D          |  A-------D
+ *    +-------------->X     +-------------->X     +-------------->Y
+ *     XY_SKEW_FACTOR        XZ_SKEW_FACTOR        YZ_SKEW_FACTOR
+ */
+//#define SKEW_CORRECTION
+
+#if ENABLED(SKEW_CORRECTION)
+  // Input all length measurements here:
+  #define XY_DIAG_AC 282.8427124746
+  #define XY_DIAG_BD 282.8427124746
+  #define XY_SIDE_AD 200
+
+  // Or, set the XY skew factor directly:
+  //#define XY_SKEW_FACTOR 0.0
+
+  //#define SKEW_CORRECTION_FOR_Z
+  #if ENABLED(SKEW_CORRECTION_FOR_Z)
+    #define XZ_DIAG_AC 282.8427124746
+    #define XZ_DIAG_BD 282.8427124746
+    #define YZ_DIAG_AC 282.8427124746
+    #define YZ_DIAG_BD 282.8427124746
+    #define YZ_SIDE_AD 200
+
+    // Or, set the Z skew factors directly:
+    //#define XZ_SKEW_FACTOR 0.0
+    //#define YZ_SKEW_FACTOR 0.0
+  #endif
+
+  // Enable this option for M852 to set skew at runtime
+  //#define SKEW_CORRECTION_GCODE
+#endif
+
+//=============================================================================
+//============================= Additional Features ===========================
+//=============================================================================
+
+// @section eeprom
+
+/**
+ * EEPROM
+ *
+ * Persistent storage to preserve configurable settings across reboots.
+ *
+ *   M500 - Store settings to EEPROM.
+ *   M501 - Read settings from EEPROM. (i.e., Throw away unsaved changes)
+ *   M502 - Revert settings to "factory" defaults. (Follow with M500 to init the EEPROM.)
+ */
+#define EEPROM_SETTINGS     // Persistent storage with M500 and M501
+//#define DISABLE_M503        // Saves ~2700 bytes of flash. Disable for release!
+#define EEPROM_CHITCHAT       // Give feedback on EEPROM commands. Disable to save flash.
+#define EEPROM_BOOT_SILENT    // Keep M503 quiet and only give errors during first load
+#if ENABLED(EEPROM_SETTINGS)
+  #define EEPROM_AUTO_INIT  // Init EEPROM automatically on any errors.
+  //#define EEPROM_INIT_NOW   // Init EEPROM on first boot after a new build.
+#endif
+
+// @section host
+
+//
+// Host Keepalive
+//
+// When enabled Marlin will send a busy status message to the host
+// every couple of seconds when it can't accept commands.
+//
+#define HOST_KEEPALIVE_FEATURE        // Disable this if your host doesn't like keepalive messages
+#define DEFAULT_KEEPALIVE_INTERVAL 2  // Number of seconds between "busy" messages. Set with M113.
+#define BUSY_WHILE_HEATING            // Some hosts require "busy" messages even during heating
+
+// @section temperature
+
+//
+// Preheat Constants - Up to 10 are supported without changes
+//
+#define PREHEAT_1_LABEL       "PLA"
+#define PREHEAT_1_TEMP_HOTEND 185
+#define PREHEAT_1_TEMP_BED     45
+#define PREHEAT_1_TEMP_CHAMBER 35
+#define PREHEAT_1_FAN_SPEED     255 // Value from 0 to 255
+
+#define PREHEAT_2_LABEL       "ABS"
+#define PREHEAT_2_TEMP_HOTEND 240
+#define PREHEAT_2_TEMP_BED    110
+#define PREHEAT_2_TEMP_CHAMBER 35
+#define PREHEAT_2_FAN_SPEED     255 // Value from 0 to 255
+
+// @section motion
+
+/**
+ * Nozzle Park
+ *
+ * Park the nozzle at the given XYZ position on idle or G27.
+ *
+ * The "P" parameter controls the action applied to the Z axis:
+ *
+ *    P0  (Default) If Z is below park Z raise the nozzle.
+ *    P1  Raise the nozzle always to Z-park height.
+ *    P2  Raise the nozzle by Z-park amount, limited to Z_MAX_POS.
+ */
+#define NOZZLE_PARK_FEATURE
+
+#if ENABLED(NOZZLE_PARK_FEATURE)
+  // Specify a park position as { X, Y, Z_raise }
+  #define NOZZLE_PARK_POINT { (X_MIN_POS + 10), (Y_MAX_POS - 10), 20 }
+  #define NOZZLE_PARK_MOVE          0   // Park motion: 0 = XY Move, 1 = X Only, 2 = Y Only, 3 = X before Y, 4 = Y before X
+  #define NOZZLE_PARK_Z_RAISE_MIN   2   // (mm) Always raise Z by at least this distance
+  #define NOZZLE_PARK_XY_FEEDRATE 100   // (mm/s) X and Y axes feedrate (also used for delta Z axis)
+  #define NOZZLE_PARK_Z_FEEDRATE    5   // (mm/s) Z axis feedrate (not used for delta printers)
+#endif
+
+// @section host
+
+/**
+ * Print Job Timer
+ *
+ * Automatically start and stop the print job timer on M104/M109/M140/M190/M141/M191.
+ * The print job timer will only be stopped if the bed/chamber target temp is
+ * below BED_MINTEMP/CHAMBER_MINTEMP.
+ *
+ *   M104 (hotend, no wait)  - high temp = none,        low temp = stop timer
+ *   M109 (hotend, wait)     - high temp = start timer, low temp = stop timer
+ *   M140 (bed, no wait)     - high temp = none,        low temp = stop timer
+ *   M190 (bed, wait)        - high temp = start timer, low temp = none
+ *   M141 (chamber, no wait) - high temp = none,        low temp = stop timer
+ *   M191 (chamber, wait)    - high temp = start timer, low temp = none
+ *
+ * For M104/M109, high temp is anything over EXTRUDE_MINTEMP / 2.
+ * For M140/M190, high temp is anything over BED_MINTEMP.
+ * For M141/M191, high temp is anything over CHAMBER_MINTEMP.
+ *
+ * The timer can also be controlled with the following commands:
+ *
+ *   M75 - Start the print job timer
+ *   M76 - Pause the print job timer
+ *   M77 - Stop the print job timer
+ */
+#define PRINTJOB_TIMER_AUTOSTART
+
+// @section security
+
+/**
+ * Password
+ *
+ * Set a numerical password for the printer which can be requested:
+ *
+ *  - When the printer boots up
+ *  - Upon opening the 'Print from Media' Menu
+ *  - When SD printing is completed or aborted
+ *
+ * The following G-codes can be used:
+ *
+ *  M510 - Lock Printer. Blocks all commands except M511.
+ *  M511 - Unlock Printer.
+ *  M512 - Set, Change and Remove Password.
+ *
+ * If you forget the password and get locked out you'll need to re-flash
+ * the firmware with the feature disabled, reset EEPROM, and (optionally)
+ * re-flash the firmware again with this feature enabled.
+ */
+//#define PASSWORD_FEATURE
+#if ENABLED(PASSWORD_FEATURE)
+  #define PASSWORD_LENGTH 4                 // (#) Number of digits (1-9). 3 or 4 is recommended
+  #define PASSWORD_ON_STARTUP
+  #define PASSWORD_UNLOCK_GCODE             // Unlock with the M511 P<password> command. Disable to prevent brute-force attack.
+  #define PASSWORD_CHANGE_GCODE             // Change the password with M512 P<old> S<new>.
+  //#define PASSWORD_ON_SD_PRINT_MENU       // This does not prevent G-codes from running
+  //#define PASSWORD_AFTER_SD_PRINT_END
+  //#define PASSWORD_AFTER_SD_PRINT_ABORT
+  //#include "Configuration_Secure.h"       // External file with PASSWORD_DEFAULT_VALUE
+#endif
+
+//=============================================================================
+//============================= LCD and SD support ============================
+//=============================================================================
+
+// @section interface
+
+/**
+ * LCD LANGUAGE
+ *
+ * Select the language to display on the LCD. These languages are available:
+ *
+ *   en, an, bg, ca, cz, da, de, el, el_CY, es, eu, fi, fr, gl, hr, hu, it,
+ *   jp_kana, ko_KR, nl, pl, pt, pt_br, ro, ru, sk, sv, tr, uk, vi, zh_CN, zh_TW
+ *
+ * :{ 'en':'English', 'an':'Aragonese', 'bg':'Bulgarian', 'ca':'Catalan', 'cz':'Czech', 'da':'Danish', 'de':'German', 'el':'Greek (Greece)', 'el_CY':'Greek (Cyprus)', 'es':'Spanish', 'eu':'Basque-Euskera', 'fi':'Finnish', 'fr':'French', 'gl':'Galician', 'hr':'Croatian', 'hu':'Hungarian', 'it':'Italian', 'jp_kana':'Japanese', 'ko_KR':'Korean (South Korea)', 'nl':'Dutch', 'pl':'Polish', 'pt':'Portuguese', 'pt_br':'Portuguese (Brazilian)', 'ro':'Romanian', 'ru':'Russian', 'sk':'Slovak', 'sv':'Swedish', 'tr':'Turkish', 'uk':'Ukrainian', 'vi':'Vietnamese', 'zh_CN':'Chinese (Simplified)', 'zh_TW':'Chinese (Traditional)' }
+ */
+#define LCD_LANGUAGE en
+
+/**
+ * LCD Character Set
+ *
+ * Note: This option is NOT applicable to Graphical Displays.
+ *
+ * All character-based LCDs provide ASCII plus one of these
+ * language extensions:
+ *
+ *  - JAPANESE ... the most common
+ *  - WESTERN  ... with more accented characters
+ *  - CYRILLIC ... for the Russian language
+ *
+ * To determine the language extension installed on your controller:
+ *
+ *  - Compile and upload with LCD_LANGUAGE set to 'test'
+ *  - Click the controller to view the LCD menu
+ *  - The LCD will display Japanese, Western, or Cyrillic text
+ *
+ * See https://marlinfw.org/docs/development/lcd_language.html
+ *
+ * :['JAPANESE', 'WESTERN', 'CYRILLIC']
+ */
+#define DISPLAY_CHARSET_HD44780 JAPANESE
+
+/**
+ * Info Screen Style (0:Classic, 1:Průša)
+ *
+ * :[0:'Classic', 1:'Průša']
+ */
+#define LCD_INFO_SCREEN_STYLE 0
+
+/**
+ * SD CARD
+ *
+ * SD Card support is disabled by default. If your controller has an SD slot,
+ * you must uncomment the following option or it won't work.
+ */
+#define SDSUPPORT
+
+//
+// Individual Axis Homing
+//
+// Add individual axis homing items (Home X, Home Y, and Home Z) to the LCD menu.
+//
+#define INDIVIDUAL_AXIS_HOMING_MENU
+//#define INDIVIDUAL_AXIS_HOMING_SUBMENU
+
+//
+// SPEAKER/BUZZER
+//
+// If you have a speaker that can produce tones, enable it here.
+// By default Marlin assumes you have a buzzer with a fixed frequency.
+//
+#define SPEAKER
+
+//
+// The duration and frequency for the UI feedback sound.
+// Set these to 0 to disable audio feedback in the LCD menus.
+//
+// Note: Test audio output with the G-Code:
+//  M300 S<frequency Hz> P<duration ms>
+//
+#define LCD_FEEDBACK_FREQUENCY_DURATION_MS 20
+#define LCD_FEEDBACK_FREQUENCY_HZ 1000
+
+//
+// Factory display for Creality CR-10 / CR-7 / Ender-3
+// https://marlinfw.org/docs/hardware/controllers.html#cr10_stockdisplay
+//
+// Connect to EXP1 on RAMPS and compatible boards.
+//
+#define CR10_STOCKDISPLAY
+
+//=============================================================================
+//=============================== Extra Features ==============================
+//=============================================================================
+
+// @section fans
+
+// Set number of user-controlled fans. Disable to use all board-defined fans.
+// :[1,2,3,4,5,6,7,8]
+//#define NUM_M106_FANS 1
+
+// Use software PWM to drive the fan, as for the heaters. This uses a very low frequency
+// which is not as annoying as with the hardware PWM. On the other hand, if this frequency
+// is too low, you should also increment SOFT_PWM_SCALE.
+#define FAN_SOFT_PWM
+
+// Incrementing this by 1 will double the software PWM frequency,
+// affecting heaters, and the fan if FAN_SOFT_PWM is enabled.
+// However, control resolution will be halved for each increment;
+// at zero value, there are 128 effective control positions.
+// :[0,1,2,3,4,5,6,7]
+#define SOFT_PWM_SCALE 0
+
+// @section servos
+
+/**
+ * Number of servos
+ *
+ * For some servo-related options NUM_SERVOS will be set automatically.
+ * Set this manually if there are extra servos needing manual control.
+ * Set to 0 to turn off servo support.
+ */
+//#define NUM_SERVOS 3 // Note: Servo index starts with 0 for M280-M282 commands
+
+// (ms) Delay before the next move will start, to give the servo time to reach its target angle.
+// 300ms is a good value but you can try less delay.
+// If the servo can't reach the requested position, increase it.
+#define SERVO_DELAY { 300 }
