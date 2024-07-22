@@ -648,3 +648,181 @@
   #define JD_HANDLE_SMALL_SEGMENTS    // Use curvature estimation instead of just the junction angle
                                       // for small segments (< 1mm) with large junction angles (> 135°).
 #endif
+
+/**
+ * S-Curve Acceleration
+ *
+ * This option eliminates vibration during printing by fitting a Bézier
+ * curve to move acceleration, producing much smoother direction changes.
+ *
+ * See https://github.com/synthetos/TinyG/wiki/Jerk-Controlled-Motion-Explained
+ */
+#define S_CURVE_ACCELERATION
+
+//===========================================================================
+//============================= Z Probe Options =============================
+//===========================================================================
+// @section probes
+
+//
+// See https://marlinfw.org/docs/configuration/probes.html
+//
+
+/**
+ * Enable this option for a probe connected to the Z-MIN pin.
+ * The probe replaces the Z-MIN endstop and is used for Z homing.
+ * (Automatically enables USE_PROBE_FOR_Z_HOMING.)
+ */
+// #define Z_MIN_PROBE_USES_Z_MIN_ENDSTOP_PIN
+
+// Force the use of the probe for Z-axis homing
+#define USE_PROBE_FOR_Z_HOMING
+
+/**
+ * Z_MIN_PROBE_PIN
+ *
+ * Override this pin only if the probe cannot be connected to
+ * the default Z_MIN_PROBE_PIN for the selected MOTHERBOARD.
+ *
+ *  - The simplest option is to use a free endstop connector.
+ *  - Use 5V for powered (usually inductive) sensors.
+ *
+ *  - For simple switches...
+ *    - Normally-closed (NC) also connect to GND.
+ *    - Normally-open (NO) also connect to 5V.
+ */
+//#define Z_MIN_PROBE_PIN -1
+
+/**
+ * Probe Type
+ *
+ * Allen Key Probes, Servo Probes, Z-Sled Probes, FIX_MOUNTED_PROBE, etc.
+ * Activate one of these to use Auto Bed Leveling below.
+ */
+
+/**
+ * The BLTouch probe uses a Hall effect sensor and emulates a servo.
+ */
+#define BLTOUCH
+
+/**
+ * Nozzle-to-Probe offsets { X, Y, Z }
+ *
+ * X and Y offset
+ *   Use a caliper or ruler to measure the distance from the tip of
+ *   the Nozzle to the center-point of the Probe in the X and Y axes.
+ *
+ * Z offset
+ * - For the Z offset use your best known value and adjust at runtime.
+ * - Common probes trigger below the nozzle and have negative values for Z offset.
+ * - Probes triggering above the nozzle height are uncommon but do exist. When using
+ *   probes such as this, carefully set Z_CLEARANCE_DEPLOY_PROBE and Z_CLEARANCE_BETWEEN_PROBES
+ *   to avoid collisions during probing.
+ *
+ * Tune and Adjust
+ * -  Probe Offsets can be tuned at runtime with 'M851', LCD menus, babystepping, etc.
+ * -  PROBE_OFFSET_WIZARD (Configuration_adv.h) can be used for setting the Z offset.
+ *
+ * Assuming the typical work area orientation:
+ *  - Probe to RIGHT of the Nozzle has a Positive X offset
+ *  - Probe to LEFT  of the Nozzle has a Negative X offset
+ *  - Probe in BACK  of the Nozzle has a Positive Y offset
+ *  - Probe in FRONT of the Nozzle has a Negative Y offset
+ *
+ * Some examples:
+ *   #define NOZZLE_TO_PROBE_OFFSET { 10, 10, -1 }   // Example "1"
+ *   #define NOZZLE_TO_PROBE_OFFSET {-10,  5, -1 }   // Example "2"
+ *   #define NOZZLE_TO_PROBE_OFFSET {  5, -5, -1 }   // Example "3"
+ *   #define NOZZLE_TO_PROBE_OFFSET {-15,-10, -1 }   // Example "4"
+ *
+ *     +-- BACK ---+
+ *     |    [+]    |
+ *   L |        1  | R <-- Example "1" (right+,  back+)
+ *   E |  2        | I <-- Example "2" ( left-,  back+)
+ *   F |[-]  N  [+]| G <-- Nozzle
+ *   T |       3   | H <-- Example "3" (right+, front-)
+ *     | 4         | T <-- Example "4" ( left-, front-)
+ *     |    [-]    |
+ *     O-- FRONT --+
+ */
+#define NOZZLE_TO_PROBE_OFFSET { -31.8, -40.5, 0 }
+
+// Most probes should stay away from the edges of the bed, but
+// with NOZZLE_AS_PROBE this can be negative for a wider probing area.
+#define PROBING_MARGIN 10
+
+// X and Y axis travel speed (mm/min) between probes
+#define XY_PROBE_FEEDRATE (200*60)
+
+// Feedrate (mm/min) for the first approach when double-probing (MULTIPLE_PROBING == 2)
+#define Z_PROBE_FEEDRATE_FAST (8*60)
+
+// Feedrate (mm/min) for the "accurate" probe of each point
+#define Z_PROBE_FEEDRATE_SLOW (Z_PROBE_FEEDRATE_FAST / 2)
+
+/**
+ * Multiple Probing
+ *
+ * You may get improved results by probing 2 or more times.
+ * With EXTRA_PROBING the more atypical reading(s) will be disregarded.
+ *
+ * A total of 2 does fast/slow probes with a weighted average.
+ * A total of 3 or more adds more slow probes, taking the average.
+ */
+#define MULTIPLE_PROBING 2
+#define EXTRA_PROBING    1
+
+/**
+ * Z probes require clearance when deploying, stowing, and moving between
+ * probe points to avoid hitting the bed and other hardware.
+ * Servo-mounted probes require extra space for the arm to rotate.
+ * Inductive probes need space to keep from triggering early.
+ *
+ * Use these settings to specify the distance (mm) to raise the probe (or
+ * lower the bed). The values set here apply over and above any (negative)
+ * probe Z Offset set with NOZZLE_TO_PROBE_OFFSET, M851, or the LCD.
+ * Only integer values >= 1 are valid here.
+ *
+ * Example: `M851 Z-5` with a CLEARANCE of 4  =>  9mm from bed to nozzle.
+ *     But: `M851 Z+1` with a CLEARANCE of 2  =>  2mm from bed to nozzle.
+ */
+#define Z_CLEARANCE_DEPLOY_PROBE   10 // (mm) Z Clearance for Deploy/Stow
+#define Z_CLEARANCE_BETWEEN_PROBES  5 // (mm) Z Clearance between probe points
+#define Z_CLEARANCE_MULTI_PROBE     5 // (mm) Z Clearance between multiple probes
+//#define Z_AFTER_PROBING           5 // (mm) Z position after probing is done
+
+#define Z_PROBE_LOW_POINT          -2 // (mm) Farthest distance below the trigger-point to go before stopping
+
+// For M851 give a range for adjusting the Z probe offset
+#define Z_PROBE_OFFSET_RANGE_MIN -20
+#define Z_PROBE_OFFSET_RANGE_MAX 20
+
+// Enable the M48 repeatability test to test probe accuracy
+#define Z_MIN_PROBE_REPEATABILITY_TEST
+
+// Before deploy/stow pause for user confirmation
+//#define PAUSE_BEFORE_DEPLOY_STOW
+#if ENABLED(PAUSE_BEFORE_DEPLOY_STOW)
+  //#define PAUSE_PROBE_DEPLOY_WHEN_TRIGGERED // For Manual Deploy Allenkey Probe
+#endif
+
+/**
+ * Enable one or more of the following if probing seems unreliable.
+ * Heaters and/or fans can be disabled during probing to minimize electrical
+ * noise. A delay can also be added to allow noise and vibration to settle.
+ * These options are most useful for the BLTouch probe, but may also improve
+ * readings with inductive probes and piezo sensors.
+ */
+#define PROBING_FANS_OFF          // Turn fans off when probing
+#define DELAY_BEFORE_PROBING 200  // (ms) To prevent vibrations from triggering piezo sensors
+
+// For Inverting Stepper Enable Pins (Active Low) use 0, Non Inverting (Active High) use 1
+// :{ 0:'Low', 1:'High' }
+#define X_ENABLE_ON 0
+#define Y_ENABLE_ON 0
+#define Z_ENABLE_ON 0
+#define E_ENABLE_ON 0 // For all extruders
+
+#define DISABLE_OTHER_EXTRUDERS   // Keep only the active extruder enabled
+
+// @section motion
